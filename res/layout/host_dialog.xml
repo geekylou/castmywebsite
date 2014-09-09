@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <TextView
+        android:id="@+id/textView1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/editTextName"
+        android:layout_alignBottom="@+id/editTextName"
+        android:layout_alignParentLeft="true"
+        android:text="Name" />
+
+    <EditText
+        android:id="@+id/editTextURL"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/editTextName"
+        android:layout_toRightOf="@+id/buttonOk"
+        android:ems="10"
+        android:gravity="fill" />
+
+    <TextView
+        android:id="@+id/textView2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/editTextURL"
+        android:layout_alignBottom="@+id/editTextURL"
+        android:layout_alignParentLeft="true"
+        android:text="Host URL" />
+
+    <TextView
+        android:id="@+id/textView3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:text="Add New Host"
+        android:textAppearance="?android:attr/textAppearanceLarge" />
+
+    <EditText
+        android:id="@+id/editTextName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_below="@+id/textView3"
+        android:layout_toRightOf="@+id/textView2"
+        android:ems="10"
+        android:gravity="fill" />
+
+    <Button
+        android:id="@+id/button1"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBaseline="@+id/buttonOk"
+        android:layout_alignBottom="@+id/buttonOk"
+        android:layout_alignParentRight="true"
+        android:text="Cancel" />
+
+    <TextView
+        android:id="@+id/textViewError"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignLeft="@+id/editTextName"
+        android:layout_below="@+id/editTextURL"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textColor="@color/TweetItem" />
+
+    <Button
+        android:id="@+id/buttonOk"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/textViewError"
+        android:text="Ok" />
+
+</RelativeLayout>

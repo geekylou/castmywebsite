@@ -38,7 +38,7 @@ public class VideoPlayer extends Activity {
         {
         	vidView.seekTo(savedInstanceState.getInt("VideoPosition", 0));
         }
-   }
+    }
     
     static class FullScreenMediaController extends MediaController {
         View mVideoView;

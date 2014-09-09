@@ -22,8 +22,6 @@ import com.google.sample.castcompanionlibrary.cast.BaseCastManager;
 import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
 import com.google.sample.castcompanionlibrary.widgets.MiniController;
 
-import uk.me.geekylou.castmywebsite.R;
-
 import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -41,6 +39,7 @@ import android.support.v7.app.ActionBarActivity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.View.OnClickListener;
@@ -107,28 +106,29 @@ public class StreamListingActivity extends ActionBarActivity {
 	private static VideoCastManager mCastMgr;
 	private ListView mTimeLineView;
 	private ArrayAdapter<FileWrapper> mTimeLineArrayAdapter;
-	private String mDirectory = "";
+	private String mDirectory = "", mHost = null;
 	private boolean restore = true;
-	private Button mCreateButton;
-	private TextView mFilenameTextView;
 	private AsyncTask<URL, Void, FileWrapper[]> mJsonRequest;
 	private HashMap<URL,Bitmap> iconCache = new HashMap<URL,Bitmap>();
 	private VideoCastManager mVideoCastManager;
 	private MiniController mMini;
 	private void reload()
 	{
-		URL jsonDirectoryListingURL;
-		try {
-			jsonDirectoryListingURL = new URL("http://192.168.0.79/video/CastVideos-chrome/getDirectoryListing.py?directory="+URLEncoder.encode(mDirectory));
-
-			if (mJsonRequest == null || mJsonRequest.getStatus() == AsyncTask.Status.FINISHED)
-			{
-				mTimeLineArrayAdapter.clear();
-				mJsonRequest = new JSONLoader().execute(jsonDirectoryListingURL);
+		if (mHost != null)
+		{
+			URL jsonDirectoryListingURL;
+			try {
+				jsonDirectoryListingURL = new URL(mHost+URLEncoder.encode(mDirectory));
+	
+				if (mJsonRequest == null || mJsonRequest.getStatus() == AsyncTask.Status.FINISHED)
+				{
+					mTimeLineArrayAdapter.clear();
+					mJsonRequest = new JSONLoader().execute(jsonDirectoryListingURL);
+				}
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
 			}
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 		}
 	}
 	
@@ -244,33 +244,15 @@ public class StreamListingActivity extends ActionBarActivity {
         // Initialise the array adapter for the list view.
         mTimeLineArrayAdapter = new FileChooserImageViewAdapter(this, R.layout.itemb);
         
-    	mFilenameTextView = ((TextView) findViewById(R.id.editTextFilename));
-    	mCreateButton = (Button) findViewById(R.id.buttonCreate);
+    	//mFilenameTextView = ((TextView) findViewById(R.id.editTextFilename));
+    	//mCreateButton = (Button) findViewById(R.id.buttonCreate);
 
         final Intent intent = getIntent();
         String action = intent.getAction();
 
-        if (action != null && action.equals(Intent.ACTION_INSERT))
+        if (action != null && action.equals(Intent.ACTION_VIEW))
         {
-        	restore = false;
-        	
-            mCreateButton.setOnClickListener(new OnClickListener()
-            {
-
-    			@Override
-    			public void onClick(View v) {
-    				
-    				
-    				String filename =mFilenameTextView.getText().toString();
-    				
-    			}  	
-            });
-        	
-        }
-        else
-        {
-        	mFilenameTextView.setEnabled(false);        	
-        	mCreateButton.setEnabled(false);
+        	mHost = intent.getStringExtra("url");
         }
         		
         mTimeLineView = (ListView) findViewById(R.id.listView1);
@@ -346,6 +328,21 @@ public class StreamListingActivity extends ActionBarActivity {
         getMenuInflater().inflate(R.menu.main, menu); 
         mCastMgr.addMediaRouterButton(menu, R.id.media_route_menu_item);
        return true;
+    }
+    
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+        case R.id.item1:
+  		  	Intent intent = new Intent(StreamListingActivity.this, HostDialog.class);
+			  
+  		  	intent.setAction(Intent.ACTION_INSERT);
+  		  	startActivity(intent);
+        	return true;
+        default:
+            return super.onOptionsItemSelected(item);
+        }
     }
     
     public static VideoCastManager getVideoCastManager(Context ctx) 

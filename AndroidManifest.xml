@@ -17,11 +17,6 @@
         android:theme="@style/AppTheme">
         <meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version"/>
         <activity android:name="StreamListingActivity" android:theme="@style/Theme.AppCompat.Light">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
             
         </activity>
 <activity android:name="com.google.sample.castcompanionlibrary.cast.player.VideoCastControllerActivity" android:screenOrientation="portrait"
@@ -53,5 +48,13 @@
  <action android:name="com.google.sample.castcompanionlibrary.action.stop" />
  </intent-filter>
  </receiver>
+<activity android:name="HostDialog" android:theme="@android:style/Theme.Holo.Dialog"></activity>
+<activity android:name="BookmarksActivity" android:theme="@style/Theme.AppCompat.Light">
+  <intent-filter>
+      <action android:name="android.intent.action.MAIN" />
+
+      <category android:name="android.intent.category.LAUNCHER" />
+  </intent-filter>    
+</activity>
  </application>
 </manifest>
