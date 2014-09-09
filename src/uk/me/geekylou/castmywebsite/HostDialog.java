@@ -24,6 +24,9 @@ public class HostDialog extends Activity {
 	private TextView mNameTextView;
 	private TextView mURLTextView;
 	private TextView mErrorTextView;
+	private Button mCancelButton;
+	private Bookmarks mBookmarks;
+	private BookmarkWrapper mBookmark = null;
 
 	/** Called when the activity is first created. */
     @Override
@@ -31,6 +34,10 @@ public class HostDialog extends Activity {
         super.onCreate(savedInstanceState);
         
         setContentView(R.layout.host_dialog);
+        
+        final Intent intent = getIntent();
+        String action = intent.getAction();
+        mBookmarks = new Bookmarks(HostDialog.this);
         
     	mNameTextView = ((TextView) findViewById(R.id.editTextName));
     	mURLTextView = ((TextView) findViewById(R.id.editTextURL));
@@ -42,21 +49,47 @@ public class HostDialog extends Activity {
 			@Override
 			public void onClick(View v) {
 				
-				BookmarkWrapper bookmark = new BookmarkWrapper();
-				bookmark.mName = mNameTextView.getText().toString();
 				try {
-					bookmark.mFile = new URL(mURLTextView.getText().toString());
 					
-					new Bookmarks(HostDialog.this).insertEntry(bookmark);
+					if (mBookmark != null)
+					{
+						mBookmark.mFile = new URL(mURLTextView.getText().toString());
+						mBookmark.mName = mNameTextView.getText().toString();
+						mBookmarks.updateEntry(mBookmark);
+					}
+					else
+					{
+						BookmarkWrapper bookmark = new BookmarkWrapper();
+						bookmark.mFile = new URL(mURLTextView.getText().toString());
+						bookmark.mName = mNameTextView.getText().toString();
+
+						mBookmarks.insertEntry(bookmark);
+					}
 					finish();
 				} catch (MalformedURLException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 					mErrorTextView.setText("Invalid URL entered!");
 				}
-				//db.dumpDB(FileChooser.this, mDirectory + File.separator + filename + ".blob");
 			}  	
         });
+    	mCancelButton = (Button) findViewById(R.id.buttonCancel);
+    	mCancelButton.setOnClickListener(new OnClickListener()
+        {
+
+			@Override
+			public void onClick(View v) 
+			{	
+				finish();
+			}  	
+        });
+    	
+    	if (action != null && action.equals(Intent.ACTION_EDIT))
+        {
+        	mBookmark = mBookmarks.getEntry(intent.getIntExtra("id",-1));
+        	mNameTextView.setText(mBookmark.mName);
+        	mURLTextView.setText(mBookmark.mFile.toExternalForm());
+        }
 
     }
 	protected void onPause()

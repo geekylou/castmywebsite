@@ -23,6 +23,7 @@ import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
 import com.google.sample.castcompanionlibrary.widgets.MiniController;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -36,12 +37,14 @@ import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.ActionBarActivity;
+import android.view.ContextMenu;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View.OnClickListener;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -49,6 +52,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.AdapterView.AdapterContextMenuInfo;
 
 class BookmarkChooserImageViewAdapter extends ArrayAdapter<BookmarkWrapper>
 {
@@ -71,8 +75,9 @@ class BookmarkChooserImageViewAdapter extends ArrayAdapter<BookmarkWrapper>
         TextView textFooter=(TextView)vi.findViewById(R.id.textViewFooter);
 
         ImageView imageViewIcon = (ImageView)vi.findViewById(R.id.imageView1);
-        imageViewIcon.setImageBitmap(this.getItem(position).mIcon);
-//        textFooter.setText(new Date(this.getItem(position).mFile.lastModified()).toString());
+        
+        if (this.getItem(position).mIcon != null) imageViewIcon.setImageBitmap(this.getItem(position).mIcon);
+        textFooter.setText(this.getItem(position).mFile.toExternalForm());
         return vi;
 	}
 }
@@ -97,8 +102,6 @@ class BookmarkWrapper
 }
 
 public class BookmarksActivity extends ActionBarActivity {
-	private static final String APPLICATION_ID = CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID;
-	private static VideoCastManager mCastMgr;
 	private ListView mTimeLineView;
 	private ArrayAdapter<BookmarkWrapper> mBookmarkArrayAdapter;
 	private String mDirectory = "";
@@ -108,6 +111,7 @@ public class BookmarksActivity extends ActionBarActivity {
 	private VideoCastManager mVideoCastManager;
 	private MiniController mMini;
 	private Bookmarks bookmarks;
+	private BookmarkWrapper e;
 	
 	private void reload()
 	{
@@ -119,12 +123,13 @@ public class BookmarksActivity extends ActionBarActivity {
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         
         BaseCastManager.checkGooglePlayServices(this);
 
-        mVideoCastManager = getVideoCastManager(this);
-        
+        mVideoCastManager = CastMyWebsiteApplication.getVideoCastManager(this);
+
+        super.onCreate(savedInstanceState);
+
         setContentView(R.layout.filechooser);
         
         bookmarks = new Bookmarks(this);
@@ -176,6 +181,66 @@ public class BookmarksActivity extends ActionBarActivity {
     	mVideoCastManager.decrementUiCounter();
     }
 
+    @Override
+    public void onCreateContextMenu(ContextMenu menu, View v,
+                                    ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_contextmenu, menu);
+        
+        ListView selectedItem = (ListView)v;
+        
+        // Get the info on which item was selected
+        AdapterContextMenuInfo info = (AdapterContextMenuInfo) menuInfo;
+    }
+    
+    @Override
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
+        		
+        switch (item.getItemId()) {
+            case R.id.itemEdit:
+            {
+                BookmarkWrapper entry = (BookmarkWrapper)mTimeLineView.getItemAtPosition(info.position);
+            	Intent intent = new Intent(BookmarksActivity.this, HostDialog.class);
+        		        		
+        		intent.setAction(Intent.ACTION_EDIT);
+        		intent.putExtra("id", entry.id);
+        		startActivity(intent);
+            }
+            	return true;
+            case R.id.itemDelete:
+            {
+            	final BookmarkWrapper entry = (BookmarkWrapper)mTimeLineView.getItemAtPosition(info.position);
+            	
+        		AlertDialog.Builder builder = new AlertDialog.Builder(BookmarksActivity.this);
+        		builder.setMessage("Are you sure you want to delete "+entry.mName+"?")
+        		       .setTitle("Delete Entry").setPositiveButton("Ok", new DialogInterface.OnClickListener()
+        		       {
+						@Override
+						public void onClick(DialogInterface dialog,
+								int which) 
+						{
+							bookmarks.deleteEntry(entry);
+							reload();
+						}
+        		       }).setNegativeButton("Cancel", new DialogInterface.OnClickListener()
+        		       {
+						@Override
+						public void onClick(DialogInterface dialog, int which) {
+							/* Do nothing if cancel is pressed. */
+						}
+        		       });
+        		    
+        		AlertDialog dialog = builder.create();
+        		dialog.show();
+
+            	return true;
+            }
+            default:
+                return super.onContextItemSelected(item);
+        }
+    }
     /**
      * Called when your activity's options menu needs to be created.
      */
@@ -183,7 +248,9 @@ public class BookmarksActivity extends ActionBarActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
         getMenuInflater().inflate(R.menu.main, menu); 
-        mCastMgr.addMediaRouterButton(menu, R.id.media_route_menu_item);
+        mVideoCastManager = CastMyWebsiteApplication.getVideoCastManager(this);
+        
+        mVideoCastManager.addMediaRouterButton(menu, R.id.media_route_menu_item);
        return true;
     }
     
@@ -202,16 +269,5 @@ public class BookmarksActivity extends ActionBarActivity {
         }
     }
     
-    public static VideoCastManager getVideoCastManager(Context ctx) 
-    {
-    	if (null == mCastMgr) 
-    	{
-    		mCastMgr = VideoCastManager.initialize(ctx, APPLICATION_ID, null, null); 
-    		mCastMgr.enableFeatures(VideoCastManager.FEATURE_NOTIFICATION | VideoCastManager.FEATURE_LOCKSCREEN |
-    				VideoCastManager.FEATURE_WIFI_RECONNECT | VideoCastManager.FEATURE_DEBUGGING);
-    	 }
-    	 mCastMgr.setContext(ctx);
-    	 return mCastMgr;
-    	 }
 
 }

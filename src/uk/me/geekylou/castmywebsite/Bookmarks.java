@@ -42,38 +42,37 @@ public class Bookmarks extends SQLiteOpenHelper
 				"icon BLOB);");
     }
 	
-	/*
-	public BookmarkWrapper getEntryIndex(String uuid)
+	public BookmarkWrapper getEntry(int id)
 	{
 		SQLiteDatabase db = getWritableDatabase();
 		
 		Cursor c;
 		String args[];
-		Entry entry = null;
+		BookmarkWrapper entry = null;
 		
-		
-		c = db.rawQuery("SELECT * FROM entries WHERE uuid='"+uuid+"'", null);
+		c = db.rawQuery("SELECT * FROM entries WHERE _id='"+Integer.toString(id)+"'", null);
 		
 		if (c.moveToNext())
 		{
-			String json = c.getString(c.getColumnIndex("json"));
+			entry = new BookmarkWrapper();
 			
-			Log.d("BlobFreeformMicroblogActivity", "TimelineStorageHelper.GetEntryByUUID " + json);
-			try {
-				boolean addEntry = true;
-				entry = new Entry(new JSONObject(json),false);
-				entry.timestamp = new Date(c.getLong(c.getColumnIndex("date")));
-				
-				Log.d("BlobFreeformMicroblogActivity", "TimelineStorageHelper.GetEntryByUUID " + c.getLong(c.getColumnIndex("date")));
-			} catch (JSONException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			entry.mName = c.getString(c.getColumnIndex("name"));
+			Log.d("CastMyWebsite", "Bookmarks.toArrayAdapter " + entry.mName);
+
+				try {
+					entry.mFile = new URL(c.getString(c.getColumnIndex("url")));
+					entry.id = c.getInt(c.getColumnIndex("_id"));
+				} catch (MalformedURLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					db.close();
+					return null;
+				}
 		}
 		db.close();
 		
 		return entry;
-	}*/
+	}
 	
 	@Override
 	public void onUpgrade(SQLiteDatabase arg0, int arg1, int arg2) {
@@ -94,23 +93,20 @@ public class Bookmarks extends SQLiteOpenHelper
 		db.close();
 	}
 	
-	/*
 	public void updateEntry(BookmarkWrapper entry)
 	{
 		SQLiteDatabase db = getWritableDatabase();
 		
 		ContentValues values = new ContentValues();
-		String[] args = {entry.uuid.toString()};
-		
-		values.put("json", entry.toJSON());
 
-		db.update("entries", values, "uuid='"+entry.uuid.toString()+"'", null);
-			
-		args = entry.tags.split(",");
-				
+		values.put("name", entry.mName);
+		values.put("url", entry.mFile.toExternalForm());
+
+		db.update("entries", values, "_id='"+Integer.toString(entry.id)+"'", null);
+							
 		db.close();
 	}
-*/
+
 	public void deleteEntry(BookmarkWrapper entry)
 	{
 		SQLiteDatabase db = getWritableDatabase();

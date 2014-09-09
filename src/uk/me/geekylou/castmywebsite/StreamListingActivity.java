@@ -23,6 +23,8 @@ import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
 import com.google.sample.castcompanionlibrary.widgets.MiniController;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -34,7 +36,9 @@ import android.os.Environment;
 import android.os.StrictMode;
 import android.provider.ContactsContract;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentActivity;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -102,13 +106,11 @@ class FileWrapper
 }
 
 public class StreamListingActivity extends ActionBarActivity {
-	private static final String APPLICATION_ID =  CastMediaControlIntent.DEFAULT_MEDIA_RECEIVER_APPLICATION_ID;
-	private static VideoCastManager mCastMgr;
 	private ListView mTimeLineView;
 	private ArrayAdapter<FileWrapper> mTimeLineArrayAdapter;
 	private String mDirectory = "", mHost = null;
 	private boolean restore = true;
-	private AsyncTask<URL, Void, FileWrapper[]> mJsonRequest;
+	private AsyncTask<URL, Void, JSONLoaderResult> mJsonRequest;
 	private HashMap<URL,Bitmap> iconCache = new HashMap<URL,Bitmap>();
 	private VideoCastManager mVideoCastManager;
 	private MiniController mMini;
@@ -118,7 +120,7 @@ public class StreamListingActivity extends ActionBarActivity {
 		{
 			URL jsonDirectoryListingURL;
 			try {
-				jsonDirectoryListingURL = new URL(mHost+URLEncoder.encode(mDirectory));
+				jsonDirectoryListingURL = new URL(mHost+"?directory="+URLEncoder.encode(mDirectory));
 	
 				if (mJsonRequest == null || mJsonRequest.getStatus() == AsyncTask.Status.FINISHED)
 				{
@@ -131,8 +133,13 @@ public class StreamListingActivity extends ActionBarActivity {
 			}
 		}
 	}
-	
-	   private class JSONLoader extends AsyncTask<URL, Void, FileWrapper[]> {
+		
+	private class JSONLoaderResult
+	{
+		FileWrapper[] mFiles;
+		String        mErrorMessage;
+	}
+	   private class JSONLoader extends AsyncTask<URL, Void, JSONLoaderResult> {
 
 		   private Bitmap loadIcon(URL url)
 		   {    
@@ -156,8 +163,9 @@ public class StreamListingActivity extends ActionBarActivity {
 			   }
 		   }
 	        @Override
-	        protected FileWrapper[] doInBackground(URL... params) {
-	    			try {
+	        protected JSONLoaderResult doInBackground(URL... params) {
+	    			JSONLoaderResult backgroundResult = new JSONLoaderResult();
+	        		try {
 						URL jsonDirectoryListingURL = params[0];
 	    			
 	    			InputStream in = jsonDirectoryListingURL.openStream();
@@ -199,27 +207,55 @@ public class StreamListingActivity extends ActionBarActivity {
 		            	files[files_index] = new FileWrapper(new URL(videoEntryJsonArr.getString(0)),directoryItem.getString("title"),loadIcon(new URL("http://192.168.0.79"+icon)));
 		            	files_index++;
 		            }
-
-		            return files;
+		            
+		            backgroundResult.mFiles = files;
+		            return backgroundResult;
 				} catch (MalformedURLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					backgroundResult.mErrorMessage = e.toString();
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					backgroundResult.mErrorMessage = e.toString();
 				} catch (JSONException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+					backgroundResult.mErrorMessage = e.toString();
 				}
 	            
-	            return null;
+	            return backgroundResult;
 	        }
 
 	        @Override
-	        protected void onPostExecute(FileWrapper[] items) 
+	        protected void onPostExecute(JSONLoaderResult items) 
 	        {
-	        	mTimeLineArrayAdapter.addAll(items);
-		        mTimeLineView.setAdapter(mTimeLineArrayAdapter);
+	        	if (items.mFiles != null)
+	        	{
+	        		mTimeLineArrayAdapter.addAll(items.mFiles);
+	        		mTimeLineView.setAdapter(mTimeLineArrayAdapter);
+	        	}
+	        	else
+	        	{
+	        		AlertDialog.Builder builder = new AlertDialog.Builder(StreamListingActivity.this);
+	        		builder.setMessage(items.mErrorMessage)
+	        		       .setTitle("Connection failed!").setPositiveButton("Ok", new DialogInterface.OnClickListener()
+	        		       {
+							@Override
+							public void onClick(DialogInterface dialog,
+									int which) 
+							{
+				        		finish();
+							}
+	        		       }).setOnDismissListener(new DialogInterface.OnDismissListener()
+	        		       {
+
+							@Override
+							public void onDismiss(DialogInterface dialog) {
+								finish();
+							}
+	        			
+	        		       });
+	        		    
+
+	        		AlertDialog dialog = builder.create();
+	        		dialog.show();
+
+	        	}
 	        }
 
 	        @Override
@@ -234,9 +270,12 @@ public class StreamListingActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         BaseCastManager.checkGooglePlayServices(this);
 
-        mVideoCastManager = getVideoCastManager(this);
+        mVideoCastManager = CastMyWebsiteApplication.getVideoCastManager(this);
         
         setContentView(R.layout.filechooser);
+        
+        ActionBar actionBar = getSupportActionBar();
+        actionBar.setDisplayHomeAsUpEnabled(true);
         
         mMini = (MiniController) findViewById(R.id.miniController1);
         mVideoCastManager.addMiniController(mMini);
@@ -325,8 +364,8 @@ public class StreamListingActivity extends ActionBarActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
-        getMenuInflater().inflate(R.menu.main, menu); 
-        mCastMgr.addMediaRouterButton(menu, R.id.media_route_menu_item);
+        getMenuInflater().inflate(R.menu.stream_listing_menu, menu); 
+        mVideoCastManager.addMediaRouterButton(menu, R.id.media_route_menu_item);
        return true;
     }
     
@@ -343,18 +382,5 @@ public class StreamListingActivity extends ActionBarActivity {
         default:
             return super.onOptionsItemSelected(item);
         }
-    }
-    
-    public static VideoCastManager getVideoCastManager(Context ctx) 
-    {
-    	if (null == mCastMgr) 
-    	{
-    		mCastMgr = VideoCastManager.initialize(ctx, APPLICATION_ID, null, null); 
-    		mCastMgr.enableFeatures(VideoCastManager.FEATURE_NOTIFICATION | VideoCastManager.FEATURE_LOCKSCREEN |
-    				VideoCastManager.FEATURE_WIFI_RECONNECT | VideoCastManager.FEATURE_DEBUGGING);
-    	 }
-    	 mCastMgr.setContext(ctx);
-    	 return mCastMgr;
-    	 }
-
+    }    
 }

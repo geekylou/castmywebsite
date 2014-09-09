@@ -6,5 +6,6 @@
         android:title="@string/media_route_menu_title"
         app:actionProviderClass="android.support.v7.app.MediaRouteActionProvider"
         app:showAsAction="always"/>
-    <item android:id="@+id/item1" android:title="Add Host"></item>
+    <item android:id="@+id/item1" android:title="Add Host" android:icon="@android:drawable/ic_menu_add"
+          app:showAsAction="always"></item>
 </menu>
