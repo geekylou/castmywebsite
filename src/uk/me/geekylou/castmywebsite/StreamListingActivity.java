@@ -373,12 +373,6 @@ public class StreamListingActivity extends ActionBarActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle item selection
         switch (item.getItemId()) {
-        case R.id.item1:
-  		  	Intent intent = new Intent(StreamListingActivity.this, HostDialog.class);
-			  
-  		  	intent.setAction(Intent.ACTION_INSERT);
-  		  	startActivity(intent);
-        	return true;
         default:
             return super.onOptionsItemSelected(item);
         }

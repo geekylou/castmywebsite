@@ -24,6 +24,7 @@ import com.google.sample.castcompanionlibrary.widgets.MiniController;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -194,6 +195,93 @@ public class BookmarksActivity extends ActionBarActivity {
         AdapterContextMenuInfo info = (AdapterContextMenuInfo) menuInfo;
     }
     
+    class OkListener implements View.OnClickListener
+    {
+    	private final Dialog    mDialog;
+    	private boolean         mUpdate;
+		private BookmarkWrapper mBookmark;
+		
+    	    public OkListener(Dialog dialog,BookmarkWrapper bookmark) {
+    	        this.mDialog    = dialog;
+    	        this.mBookmark = bookmark;
+    	        this.mUpdate   = true;
+    	    }
+    	    public OkListener(Dialog dialog) {
+    	        this.mDialog    = dialog;
+    	        this.mBookmark = new BookmarkWrapper();
+    	        this.mUpdate   = true;
+    	    }
+    	    
+        @Override
+        public void onClick(View v) 
+        {
+			TextView mErrorTextView = ((TextView) mDialog.findViewById(R.id.textViewError));
+			try {
+				TextView mNameTextView = ((TextView) mDialog.findViewById(R.id.editTextName));
+				TextView mURLTextView = ((TextView) mDialog.findViewById(R.id.editTextURL));
+		    	
+				mBookmark.mFile = new URL(mURLTextView.getText().toString());
+				mBookmark.mName = mNameTextView.getText().toString();
+
+				if (mUpdate)
+					bookmarks.updateEntry(mBookmark);
+				else
+					bookmarks.insertEntry(mBookmark);
+				reload();
+	            mDialog.dismiss();
+			} catch (MalformedURLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				mErrorTextView.setText("Invalid URL entered!");
+			}
+        }
+    }
+    
+    void createHostDialog(BookmarkWrapper bookmark)
+    {
+    	OkListener listener;
+    	LayoutInflater inflater = getLayoutInflater();
+    	
+		AlertDialog.Builder builder = new AlertDialog.Builder(BookmarksActivity.this);
+		builder.setView(inflater.inflate(R.layout.host_dialog, null))
+		       .setNegativeButton("Cancel", new DialogInterface.OnClickListener()
+		       {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					/* Do nothing if cancel is pressed. */
+				}
+		       }).setPositiveButton("Ok", new DialogInterface.OnClickListener()
+		       {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					/* Do nothing if cancel is pressed. */
+				}
+		       });
+		
+		if (bookmark == null)
+		{
+			builder.setTitle("Add New Host");
+		}
+		else
+		{
+			builder.setTitle("Edit Host");
+		}
+		AlertDialog dialog = builder.create();
+		dialog.show();
+		
+		Button theButton = dialog.getButton(DialogInterface.BUTTON_POSITIVE);
+		if (bookmark == null)
+		{
+			theButton.setOnClickListener(new OkListener(dialog));
+		}
+		else
+		{
+			((TextView)dialog.findViewById(R.id.editTextName)).setText(bookmark.mName);
+			((TextView)dialog.findViewById(R.id.editTextURL)).setText(bookmark.mFile.toExternalForm());
+			theButton.setOnClickListener(new OkListener(dialog,bookmark));
+		}
+    }
+    
     @Override
     public boolean onContextItemSelected(MenuItem item) {
         AdapterContextMenuInfo info = (AdapterContextMenuInfo) item.getMenuInfo();
@@ -202,11 +290,12 @@ public class BookmarksActivity extends ActionBarActivity {
             case R.id.itemEdit:
             {
                 BookmarkWrapper entry = (BookmarkWrapper)mTimeLineView.getItemAtPosition(info.position);
-            	Intent intent = new Intent(BookmarksActivity.this, HostDialog.class);
+            	createHostDialog(entry);
+/*            	Intent intent = new Intent(BookmarksActivity.this, HostDialog.class);
         		        		
         		intent.setAction(Intent.ACTION_EDIT);
         		intent.putExtra("id", entry.id);
-        		startActivity(intent);
+        		startActivity(intent);*/
             }
             	return true;
             case R.id.itemDelete:
@@ -259,10 +348,12 @@ public class BookmarksActivity extends ActionBarActivity {
         // Handle item selection
         switch (item.getItemId()) {
         case R.id.item1:
+        	createHostDialog(null);
+        	/*
   		  	Intent intent = new Intent(BookmarksActivity.this, HostDialog.class);
 			  
   		  	intent.setAction(Intent.ACTION_INSERT);
-  		  	startActivity(intent);
+  		  	startActivity(intent);*/
         	return true;
         default:
             return super.onOptionsItemSelected(item);
