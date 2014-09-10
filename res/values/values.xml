@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="Footer">#888888</color>
+    <color name="Footer">#aaaaaa</color>
     <color name="TweetItem">#ffff0000</color>
     
 </resources>

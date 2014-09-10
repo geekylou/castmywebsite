@@ -12,13 +12,15 @@
         android:layout_alignParentTop="true" >
 
     </ListView>   
+
 <com.google.sample.castcompanionlibrary.widgets.MiniController
- android:id="@+id/miniController1"
- android:layout_width="fill_parent"
- android:layout_height="wrap_content"
- android:layout_alignParentBottom="true"
- android:background="@drawable/mini_bg_shadow"
-android:visibility="gone">
+    android:id="@+id/miniController1"
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:layout_alignParentBottom="true"
+    android:background="@color/Footer"
+    android:visibility="gone" >
+
  </com.google.sample.castcompanionlibrary.widgets.MiniController>
 
 </RelativeLayout>

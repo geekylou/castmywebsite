@@ -114,6 +114,8 @@ public class StreamListingActivity extends ActionBarActivity {
 	private HashMap<URL,Bitmap> iconCache = new HashMap<URL,Bitmap>();
 	private VideoCastManager mVideoCastManager;
 	private MiniController mMini;
+	private FileWrapper    mParentDir = null;
+	
 	private void reload()
 	{
 		if (mHost != null)
@@ -125,6 +127,7 @@ public class StreamListingActivity extends ActionBarActivity {
 				if (mJsonRequest == null || mJsonRequest.getStatus() == AsyncTask.Status.FINISHED)
 				{
 					mTimeLineArrayAdapter.clear();
+					mParentDir   = null;
 					mJsonRequest = new JSONLoader().execute(jsonDirectoryListingURL);
 				}
 			} catch (MalformedURLException e) {
@@ -138,6 +141,7 @@ public class StreamListingActivity extends ActionBarActivity {
 	{
 		FileWrapper[] mFiles;
 		String        mErrorMessage;
+		FileWrapper	  mParentDir;
 	}
 	   private class JSONLoader extends AsyncTask<URL, Void, JSONLoaderResult> {
 
@@ -193,8 +197,13 @@ public class StreamListingActivity extends ActionBarActivity {
 		            	JSONObject directoryItem = directoryJsonArr.getJSONObject(i);
 		                JSONArray directoryEntryJsonArr = directoryItem.getJSONArray("directory");
 		                String icon = directoryItem.getString("icon");
-		            	
+		                
 		            	files[files_index] = new FileWrapper(directoryEntryJsonArr.getString(0),directoryItem.getString("title"),loadIcon(new URL("http://192.168.0.79"+icon)));
+		            	
+		            	if (files[files_index].mName.equals(".."))
+		            	{
+		            		backgroundResult.mParentDir = files[files_index];
+		            	}
 		            	files_index++;
 		            }
 		            		            
@@ -228,6 +237,7 @@ public class StreamListingActivity extends ActionBarActivity {
 	        	{
 	        		mTimeLineArrayAdapter.addAll(items.mFiles);
 	        		mTimeLineView.setAdapter(mTimeLineArrayAdapter);
+	        		mParentDir = items.mParentDir;
 	        	}
 	        	else
 	        	{
@@ -322,6 +332,8 @@ public class StreamListingActivity extends ActionBarActivity {
         			  {
 	        			  MediaMetadata metaData = new MediaMetadata(MediaMetadata.MEDIA_TYPE_MOVIE);
 	        			  
+	        			  metaData.putString(MediaMetadata.KEY_TITLE, selectedFile.mName);
+	        			  
 	        			  MediaInfo mediaInfo = new MediaInfo.Builder(
 	        					    selectedFile.mFile.toExternalForm())
 	        					    .setContentType("video/mp4")
@@ -343,6 +355,19 @@ public class StreamListingActivity extends ActionBarActivity {
 		mVideoCastManager.removeMiniController(mMini);
 		super.onDestroy();
 	}
+	
+	@Override
+	public void onBackPressed() 
+	{
+		if (mParentDir != null)
+		{
+			mDirectory = mParentDir.mDirectory;  
+			reload();
+			return;
+		}
+		super.onBackPressed();
+	}
+	
     @Override
     protected void onResume()
     {
