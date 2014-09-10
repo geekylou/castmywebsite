@@ -171,6 +171,7 @@ public class BookmarksActivity extends ActionBarActivity {
     protected void onResume()
     {
     	super.onResume();
+    	mVideoCastManager.setContext(this);
     	mVideoCastManager.incrementUiCounter();
     	reload();
     }
@@ -209,7 +210,7 @@ public class BookmarksActivity extends ActionBarActivity {
     	    public OkListener(Dialog dialog) {
     	        this.mDialog    = dialog;
     	        this.mBookmark = new BookmarkWrapper();
-    	        this.mUpdate   = true;
+    	        this.mUpdate   = false;
     	    }
     	    
         @Override

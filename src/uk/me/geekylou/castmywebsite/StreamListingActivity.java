@@ -347,6 +347,7 @@ public class StreamListingActivity extends ActionBarActivity {
     protected void onResume()
     {
     	super.onResume();
+    	mVideoCastManager.setContext(this);
     	mVideoCastManager.incrementUiCounter();
     	reload();
     }
@@ -364,7 +365,10 @@ public class StreamListingActivity extends ActionBarActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         super.onCreateOptionsMenu(menu);
-        getMenuInflater().inflate(R.menu.stream_listing_menu, menu); 
+        getMenuInflater().inflate(R.menu.stream_listing_menu, menu);
+        
+        mVideoCastManager = CastMyWebsiteApplication.getVideoCastManager(this);
+        
         mVideoCastManager.addMediaRouterButton(menu, R.id.media_route_menu_item);
        return true;
     }
