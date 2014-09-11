@@ -198,7 +198,10 @@ public class StreamListingActivity extends ActionBarActivity {
 		                JSONArray directoryEntryJsonArr = directoryItem.getJSONArray("directory");
 		                String icon = directoryItem.getString("icon");
 		                
-		            	files[files_index] = new FileWrapper(directoryEntryJsonArr.getString(0),directoryItem.getString("title"),loadIcon(new URL("http://192.168.0.79"+icon)));
+		                String urlString = jsonDirectoryListingURL.getProtocol() + "://"+ jsonDirectoryListingURL.getHost() + "/" + icon;
+		                Bitmap iconBitmap = loadIcon(new URL(urlString));
+		                
+		            	files[files_index] = new FileWrapper(directoryEntryJsonArr.getString(0),directoryItem.getString("title"),iconBitmap);
 		            	
 		            	if (files[files_index].mName.equals(".."))
 		            	{
@@ -213,7 +216,10 @@ public class StreamListingActivity extends ActionBarActivity {
 		                JSONArray videoEntryJsonArr = directoryItem.getJSONArray("sources");
 		                String icon = directoryItem.getString("icon");
 		                
-		            	files[files_index] = new FileWrapper(new URL(videoEntryJsonArr.getString(0)),directoryItem.getString("title"),loadIcon(new URL("http://192.168.0.79"+icon)));
+		                String urlString = jsonDirectoryListingURL.getProtocol() + "://"+ jsonDirectoryListingURL.getHost() + "/" + icon;
+		                Bitmap iconBitmap = loadIcon(new URL(urlString));
+		                
+		            	files[files_index] = new FileWrapper(new URL(videoEntryJsonArr.getString(0)),directoryItem.getString("title"),iconBitmap);
 		            	files_index++;
 		            }
 		            
@@ -348,6 +354,7 @@ public class StreamListingActivity extends ActionBarActivity {
         	});
         
         // Initialise the array adapter for the list view.
+        reload();
         
    }
 	protected void onDestroy()
