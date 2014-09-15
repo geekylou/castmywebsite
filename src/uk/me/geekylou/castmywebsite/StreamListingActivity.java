@@ -20,7 +20,8 @@ import com.google.android.gms.cast.MediaInfo;
 import com.google.android.gms.cast.MediaMetadata;
 import com.google.sample.castcompanionlibrary.cast.BaseCastManager;
 import com.google.sample.castcompanionlibrary.cast.VideoCastManager;
-import com.google.sample.castcompanionlibrary.widgets.MiniController;
+import com.google.sample.castcompanionlibrary.cast.exceptions.NoConnectionException;
+import com.google.sample.castcompanionlibrary.cast.exceptions.TransientNetworkDisconnectionException;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -30,6 +31,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
@@ -57,22 +59,30 @@ import android.widget.TextView;
 class FileChooserImageViewAdapter extends ArrayAdapter<FileWrapper>
 {
 	private static LayoutInflater inflater=null;
+	private Context mCtx;
+	private int     mSelectedColor;
+	private int mTextViewResourceId;
 	
 	public FileChooserImageViewAdapter(Context context, int textViewResourceId) {
 		super(context, textViewResourceId);		
-		
+		mCtx = context;
+		mSelectedColor = mCtx.getResources().getColor(R.color.Selected);
 		inflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+		mTextViewResourceId = textViewResourceId;
 	}
 	
 	public View getView(int position, View convertView, ViewGroup parent) {
 		View vi=convertView;
         if(convertView==null)
-            vi = inflater.inflate(R.layout.itemb, null);
+            vi = inflater.inflate(mTextViewResourceId, null);
+        if (this.getItem(position).mIsSelected)
+        	vi.setBackgroundColor(mSelectedColor);
+        else
+        	vi.setBackgroundColor(Color.TRANSPARENT);
         
         TextView textBody=(TextView)vi.findViewById(R.id.textViewBody);
         
         textBody.setText(this.getItem(position).mName);
-        TextView textFooter=(TextView)vi.findViewById(R.id.textViewFooter);
 
         ImageView imageViewIcon = (ImageView)vi.findViewById(R.id.imageView1);
         imageViewIcon.setImageBitmap(this.getItem(position).mIcon);
@@ -86,7 +96,7 @@ class FileWrapper
 	URL 	mFile;
 	Bitmap  mIcon;
 	String  mName,mDirectory;
-	boolean mIsDirectory;
+	boolean mIsDirectory,mIsSelected;
 	
 	FileWrapper(String directory,String name, Bitmap icon)
 	{
@@ -106,8 +116,9 @@ class FileWrapper
 }
 
 public class StreamListingActivity extends ActionBarActivity {
-	private ListView mTimeLineView;
-	private ArrayAdapter<FileWrapper> mTimeLineArrayAdapter;
+	private ListView mFilesLineView;
+	private ArrayAdapter<FileWrapper> mFilesArrayAdapter;
+	private FileWrapper[] mFiles;
 	private String mDirectory = "", mHost = null;
 	private boolean restore = true;
 	private AsyncTask<URL, Void, JSONLoaderResult> mJsonRequest;
@@ -115,6 +126,7 @@ public class StreamListingActivity extends ActionBarActivity {
 	private VideoCastManager mVideoCastManager;
 	private MiniController mMini;
 	private FileWrapper    mParentDir = null;
+	private FileWrapper    mSelectedFile = null;
 	
 	private void reload()
 	{
@@ -126,7 +138,7 @@ public class StreamListingActivity extends ActionBarActivity {
 	
 				if (mJsonRequest == null || mJsonRequest.getStatus() == AsyncTask.Status.FINISHED)
 				{
-					mTimeLineArrayAdapter.clear();
+					mFilesArrayAdapter.clear();
 					mParentDir   = null;
 					mJsonRequest = new JSONLoader().execute(jsonDirectoryListingURL);
 				}
@@ -241,9 +253,34 @@ public class StreamListingActivity extends ActionBarActivity {
 	        {
 	        	if (items.mFiles != null)
 	        	{
-	        		mTimeLineArrayAdapter.addAll(items.mFiles);
-	        		mTimeLineView.setAdapter(mTimeLineArrayAdapter);
+	        		if (mSelectedFile != null)
+	        			for (FileWrapper file : items.mFiles)
+					{
+						if (!file.mIsDirectory)
+							file.mIsSelected = file.mFile.toExternalForm().equals(mSelectedFile.mFile.toExternalForm());
+					}
+	        		
+	        		try {
+						String playingUrl = mVideoCastManager.getRemoteMovieUrl();
+						
+						if (playingUrl != null)
+						{
+							for (FileWrapper file : items.mFiles)
+							{
+								if (!file.mIsDirectory)
+									file.mIsSelected = file.mFile.toExternalForm().equals(playingUrl);
+							}
+						}
+					} catch (TransientNetworkDisconnectionException e) {
+						// Do nothing.  If we don't have a connection then this will go from the last selected item.
+					} catch (NoConnectionException e) {
+						// Do nothing.  If we don't have a connection then this will go from the last selected item.
+					}
+	        		
+	        		mFilesArrayAdapter.addAll(items.mFiles);
+	        		mFilesLineView.setAdapter(mFilesArrayAdapter);
 	        		mParentDir = items.mParentDir;
+	        		mFiles = items.mFiles;
 	        	}
 	        	else
 	        	{
@@ -295,36 +332,42 @@ public class StreamListingActivity extends ActionBarActivity {
         
         mMini = (MiniController) findViewById(R.id.miniController1);
         mVideoCastManager.addMiniController(mMini);
-
         // Initialise the array adapter for the list view.
-        mTimeLineArrayAdapter = new FileChooserImageViewAdapter(this, R.layout.itemb);
+        mFilesArrayAdapter = new FileChooserImageViewAdapter(this, R.layout.video);
         
-    	//mFilenameTextView = ((TextView) findViewById(R.id.editTextFilename));
-    	//mCreateButton = (Button) findViewById(R.id.buttonCreate);
-
         final Intent intent = getIntent();
         String action = intent.getAction();
 
         if (action != null && action.equals(Intent.ACTION_VIEW))
         {
         	mHost = intent.getStringExtra("url");
+            // Initialise the array adapter for the list view.
+            reload();
         }
         		
-        mTimeLineView = (ListView) findViewById(R.id.listView1);
-        registerForContextMenu(mTimeLineView);
-        mTimeLineView.setOnItemClickListener (new AdapterView.OnItemClickListener() 
+        mFilesLineView = (ListView) findViewById(R.id.listView1);
+        registerForContextMenu(mFilesLineView);
+        mFilesLineView.setOnItemClickListener (new AdapterView.OnItemClickListener() 
         {
         	  @Override
         	  public void onItemClick(AdapterView<?> arg0, View arg1, int position, long arg3) {
-        		  FileWrapper selectedFile = mTimeLineArrayAdapter.getItem(position);
+        		  FileWrapper selectedFile = mFilesArrayAdapter.getItem(position);
         		  
-        		  if (selectedFile.mIsDirectory)
+        	      if (selectedFile.mIsDirectory)
         		  {
         			  mDirectory = selectedFile.mDirectory;  
         			  reload();
         		  }
         		  else
         		  {
+        			  for (int iIndex=0; iIndex < mFiles.length; iIndex++)
+        			  {
+        				  mFiles[iIndex].mIsSelected = false;
+        			  }
+        			  mFiles[position].mIsSelected = true;
+        			  mFilesArrayAdapter.notifyDataSetChanged();
+        			  mSelectedFile = mFiles[position];
+        			  
         			  if (!mVideoCastManager.isConnected())
         			  {
 	        			  Intent intent = new Intent(StreamListingActivity.this, VideoPlayer.class);
@@ -347,15 +390,18 @@ public class StreamListingActivity extends ActionBarActivity {
 	        					    .setMetadata(metaData)
 	        					    .build();
 	        			  
-	        			  mVideoCastManager.startCastControllerActivity(StreamListingActivity.this, mediaInfo, 0, true);
+	        			  try {
+							mVideoCastManager.loadMedia(mediaInfo, true, 0);
+	        			  } catch (TransientNetworkDisconnectionException e) {
+	        				  connectionFaileDialog("Casting failed","Lost connection to Chromecast.\nPlease try again later!");
+	        			  } catch (NoConnectionException e) {
+	        				  connectionFaileDialog("Casting failed","Can't connect to chromecast.");
+	        			  }
+	        			  //mVideoCastManager.startCastControllerActivity(StreamListingActivity.this, mediaInfo, 0, true);
         			  }
         		  }
         	  }
-        	});
-        
-        // Initialise the array adapter for the list view.
-        reload();
-        
+        	});        
    }
 	protected void onDestroy()
 	{
@@ -381,7 +427,7 @@ public class StreamListingActivity extends ActionBarActivity {
     	super.onResume();
     	mVideoCastManager.setContext(this);
     	mVideoCastManager.incrementUiCounter();
-    	reload();
+    	//reload();
     }
 
     @Override
@@ -412,5 +458,32 @@ public class StreamListingActivity extends ActionBarActivity {
         default:
             return super.onOptionsItemSelected(item);
         }
-    }    
+    }   
+    
+    private void connectionFaileDialog(String title,String message)
+    {
+	    AlertDialog.Builder builder = new AlertDialog.Builder(StreamListingActivity.this);
+		builder.setMessage(title)
+		       .setTitle(message).setPositiveButton("Ok", new DialogInterface.OnClickListener()
+		       {
+				@Override
+				public void onClick(DialogInterface dialog,
+						int which) 
+				{
+	        		finish();
+				}
+		       }).setOnDismissListener(new DialogInterface.OnDismissListener()
+		       {
+	
+				@Override
+				public void onDismiss(DialogInterface dialog) {
+					finish();
+				}
+			
+		       });
+		    
+	
+		AlertDialog dialog = builder.create();
+		dialog.show();
+    }
 }

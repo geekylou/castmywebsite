@@ -13,7 +13,7 @@
 
     </ListView>   
 
-<com.google.sample.castcompanionlibrary.widgets.MiniController
+<uk.me.geekylou.castmywebsite.MiniController
     android:id="@+id/miniController1"
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
@@ -21,6 +21,6 @@
     android:background="@color/Footer"
     android:visibility="gone" >
 
- </com.google.sample.castcompanionlibrary.widgets.MiniController>
+ </uk.me.geekylou.castmywebsite.MiniController>
 
 </RelativeLayout>
